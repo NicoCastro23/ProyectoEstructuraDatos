@@ -2,7 +2,7 @@ package com.plataformaEducativa.proyectoestructuradatos.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
@@ -24,15 +24,15 @@ public class ValoracionEntity {
     private String comentario;
 
     @Column(nullable = false)
-    private LocalDateTime fecha;
+    private LocalDate fecha;
 
     // Relación con el contenido valorado
     @ManyToOne
     @JoinColumn(name = "contenido_id", nullable = false)
     private ContenidoEntity contenido;
 
-    // Relación con el usuario que hizo la valoración
+    // Relación con el estudiante que hizo la valoración
     @ManyToOne
-    @JoinColumn(name = "usuario_id", nullable = false)
-    private UsuarioEntity usuario;
+    @JoinColumn(name = "estudiante_id", nullable = false)
+    private EstudianteEntity estudiante;
 }
