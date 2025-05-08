@@ -71,6 +71,15 @@ public class UserService {
             estudiante.setName(registerRequest.getName());
             estudiante.setPassword(encodedPassword);
             estudiante.setRole(RoleEnum.ESTUDIANTE);
+
+            // Establecer los nuevos campos
+            if (registerRequest.getNivelAcademico() != null) {
+                estudiante.setNivelAcademico(registerRequest.getNivelAcademico());
+            }
+            if (registerRequest.getIntereses() != null) {
+                estudiante.setIntereses(registerRequest.getIntereses());
+            }
+
             newUser = usuarioRepository.save(estudiante);
         } else if (registerRequest.getRole() == RoleEnum.MODERADOR) {
             ModeradorEntity moderador = new ModeradorEntity();

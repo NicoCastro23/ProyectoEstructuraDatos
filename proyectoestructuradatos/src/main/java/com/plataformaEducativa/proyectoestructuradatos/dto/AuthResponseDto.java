@@ -1,5 +1,7 @@
 package com.plataformaEducativa.proyectoestructuradatos.dto;
 
+import java.util.List;
+
 import com.plataformaEducativa.proyectoestructuradatos.enums.RoleEnum;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,4 +19,8 @@ public class AuthResponseDto {
     private RoleEnum role;
     private String userType;
     private String message;
+
+    // Nuevos campos para respuesta de estudiantes
+    private String nivelAcademico;
+    private List<String> intereses;
 }

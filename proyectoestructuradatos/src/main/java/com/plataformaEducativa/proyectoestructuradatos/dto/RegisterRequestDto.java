@@ -1,5 +1,7 @@
 package com.plataformaEducativa.proyectoestructuradatos.dto;
 
+import java.util.List;
+
 import com.plataformaEducativa.proyectoestructuradatos.enums.RoleEnum;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -28,4 +30,8 @@ public class RegisterRequestDto {
 
     @NotNull(message = "El rol es obligatorio")
     private RoleEnum role;
+
+    // Nuevos campos para estudiantes (opcionales)
+    private String nivelAcademico;
+    private List<String> intereses;
 }

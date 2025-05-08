@@ -48,6 +48,14 @@ public class UsuarioMapper {
         entity.setPassword(passwordEncoder.encode(dto.getPassword()));
         entity.setRole(RoleEnum.ESTUDIANTE);
 
+        // Establecer los nuevos campos si están presentes
+        if (dto.getNivelAcademico() != null) {
+            entity.setNivelAcademico(dto.getNivelAcademico());
+        }
+        if (dto.getIntereses() != null) {
+            entity.setIntereses(dto.getIntereses());
+        }
+
         return entity;
     }
 
