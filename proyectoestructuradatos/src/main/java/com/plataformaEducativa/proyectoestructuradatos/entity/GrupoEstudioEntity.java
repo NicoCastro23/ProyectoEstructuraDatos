@@ -28,11 +28,7 @@ public class GrupoEstudioEntity {
 
     // Relación con los estudiantes participantes
     @ManyToMany
-    @JoinTable(
-            name = "grupo_estudiantes",
-            joinColumns = @JoinColumn(name = "grupo_id"),
-            inverseJoinColumns = @JoinColumn(name = "estudiante_id")
-    )
+    @JoinTable(name = "grupo_estudiantes", joinColumns = @JoinColumn(name = "grupo_id"), inverseJoinColumns = @JoinColumn(name = "estudiante_id"))
     private Set<EstudianteEntity> estudiantes = new HashSet<>();
 
     // Relaciones con solicitudes de ayuda
