@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -39,13 +38,15 @@ public class SolicitudAyudaService {
     public SolicitudAyudaDto crearSolicitudAyuda(CreateSolicitudAyudaDto createDto) {
         // Buscar el estudiante
         EstudianteEntity estudiante = (EstudianteEntity) usuarioRepository.findById(createDto.getEstudianteId())
-                .orElseThrow(() -> new EntityNotFoundException("Estudiante no encontrado con ID: " + createDto.getEstudianteId()));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Estudiante no encontrado con ID: " + createDto.getEstudianteId()));
 
         // Buscar el grupo de estudio (si se proporcionó ID)
         GrupoEstudioEntity grupoEstudio = null;
         if (createDto.getGrupoEstudioId() != null) {
             grupoEstudio = grupoEstudioRepository.findById(createDto.getGrupoEstudioId())
-                    .orElseThrow(() -> new EntityNotFoundException("Grupo de estudio no encontrado con ID: " + createDto.getGrupoEstudioId()));
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Grupo de estudio no encontrado con ID: " + createDto.getGrupoEstudioId()));
 
             // Verificar que el estudiante pertenece al grupo
             if (!grupoEstudio.esMiembro(estudiante)) {

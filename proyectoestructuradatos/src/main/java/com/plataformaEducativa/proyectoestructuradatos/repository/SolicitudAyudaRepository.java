@@ -5,7 +5,6 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import com.plataformaEducativa.proyectoestructuradatos.entity.EstudianteEntity;
 import com.plataformaEducativa.proyectoestructuradatos.entity.GrupoEstudioEntity;
@@ -28,7 +27,8 @@ public interface SolicitudAyudaRepository extends JpaRepository<SolicitudAyudaEn
     // Buscar solicitudes por grupo de estudio y estado de lectura
     List<SolicitudAyudaEntity> findByGrupoEstudioAndLeidoFalse(GrupoEstudioEntity grupoEstudio);
 
-    // Consulta personalizada para buscar solicitudes sin asignar a cola de prioridad
+    // Consulta personalizada para buscar solicitudes sin asignar a cola de
+    // prioridad
     @Query("SELECT s FROM SolicitudAyudaEntity s WHERE s.colaPrioridad IS NULL")
     List<SolicitudAyudaEntity> findSolicitudesSinColaPrioridad();
 

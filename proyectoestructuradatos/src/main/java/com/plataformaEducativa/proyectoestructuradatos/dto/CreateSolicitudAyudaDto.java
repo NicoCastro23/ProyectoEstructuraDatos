@@ -4,7 +4,7 @@ import lombok.*;
 import jakarta.validation.constraints.*;
 import java.util.UUID;
 
-import com.plataformaEducativa.proyectoestructuradatos.entity.ColaPrioridadAyudaEntity.NivelUrgencia;
+import com.plataformaEducativa.proyectoestructuradatos.enums.NivelUrgencia;
 
 @Data
 @NoArgsConstructor

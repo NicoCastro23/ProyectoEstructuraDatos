@@ -4,7 +4,8 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import com.plataformaEducativa.proyectoestructuradatos.entity.ColaPrioridadAyudaEntity.NivelUrgencia;
+import com.plataformaEducativa.proyectoestructuradatos.entity.ColaPrioridadAyudaEntity;
+import com.plataformaEducativa.proyectoestructuradatos.enums.NivelUrgencia;
 
 @Data
 @NoArgsConstructor
@@ -27,4 +28,14 @@ public class ColaPrioridadAyudaDto {
 
     // Campo calculado para mostrar la prioridad
     private int prioridad;
+
+    public ColaPrioridadAyudaDto(ColaPrioridadAyudaEntity entity) {
+        this.id = entity.getId();
+        this.tema = entity.getTema();
+        this.descripcion = entity.getDescripcion();
+        this.nivelUrgencia = entity.getNivelUrgencia();
+        this.fechaSolicitud = entity.getFechaSolicitud();
+        this.resuelta = entity.isResuelta();
+    }
+
 }
