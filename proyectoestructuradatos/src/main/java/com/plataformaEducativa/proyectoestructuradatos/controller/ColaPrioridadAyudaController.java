@@ -6,9 +6,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.plataformaEducativa.proyectoestructuradatos.dto.ColaPrioridadAyudaDto;
+import com.plataformaEducativa.proyectoestructuradatos.dto.CrearSolicitudPrioridadDto;
 import com.plataformaEducativa.proyectoestructuradatos.enums.NivelUrgencia;
 import com.plataformaEducativa.proyectoestructuradatos.service.ColaPrioridadAyudaService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -72,10 +74,18 @@ public class ColaPrioridadAyudaController {
 
     }
 
-    // @PostMapping("/create")
-    // public ResponseEntity<ColaPrioridadAyudaDto> crearSolicitud(@RequestBody
-    // ColaPrioridadAyudaDto dto) {
-    // return ResponseEntity.status(HttpStatus.CREATED)
-    // .body(colaPrioridadAyudaService.crearSolicitud(dto));
-    // }
+    /*
+     * Crea una nueva solicitud en la cola de prioridad
+     * 
+     * @param solicitudDto datos de la nueva solicitud
+     * 
+     * @return la solicitud creada con su información completa
+     */
+    @PostMapping("/create")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<ColaPrioridadAyudaDto> crearSolicitudPrioridad(
+            @Valid @RequestBody CrearSolicitudPrioridadDto solicitudDto) {
+        ColaPrioridadAyudaDto nuevaSolicitud = colaPrioridadAyudaService.crearSolicitudPrioridad(solicitudDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevaSolicitud);
+    }
 }

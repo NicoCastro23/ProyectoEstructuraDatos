@@ -1,12 +1,12 @@
 package com.plataformaEducativa.proyectoestructuradatos.service;
 
 import com.plataformaEducativa.proyectoestructuradatos.dto.*;
-import com.plataformaEducativa.proyectoestructuradatos.entity.ContenidoEntity;
+import com.plataformaEducativa.proyectoestructuradatos.entity.ContentEntity;
 import com.plataformaEducativa.proyectoestructuradatos.entity.EstudianteEntity;
 import com.plataformaEducativa.proyectoestructuradatos.enums.TipoContenido;
 import com.plataformaEducativa.proyectoestructuradatos.exception.DatosInvalidosException;
 import com.plataformaEducativa.proyectoestructuradatos.exception.RecursoNoEncontradoException;
-import com.plataformaEducativa.proyectoestructuradatos.mapper.ContenidoMapper;
+import com.plataformaEducativa.proyectoestructuradatos.mapper.ContentMapper;
 import com.plataformaEducativa.proyectoestructuradatos.repository.ContenidoRepository;
 import com.plataformaEducativa.proyectoestructuradatos.repository.EstudianteRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,11 +23,12 @@ public class ContenidoService {
 
     private final ContenidoRepository contenidoRepository;
     private final EstudianteRepository estudianteRepository;
-    private final ContenidoMapper contenidoMapper;
+    private final ContentMapper contenidoMapper;
 
     /**
      * Crea un nuevo documento
-     * @param dto DTO con los datos del documento
+     * 
+     * @param dto     DTO con los datos del documento
      * @param autorId ID del estudiante autor
      * @return DTO del contenido creado
      */
@@ -36,10 +37,11 @@ public class ContenidoService {
         EstudianteEntity autor = obtenerEstudiante(autorId);
         validarTipoContenido(dto, TipoContenido.DOCUMENTO);
 
-        ContenidoEntity entity = contenidoMapper.fromDocumentoDTO(dto, autor);
+        ContentEntity entity = contenidoMapper.fromDocumentoDTO(dto, autor);
         entity = contenidoRepository.save(entity);
 
-        // Aquí se guardarían detalles específicos del documento en otra tabla o estructura
+        // Aquí se guardarían detalles específicos del documento en otra tabla o
+        // estructura
         // Por ejemplo, almacenar la ruta del archivo, formato, etc.
 
         return contenidoMapper.toDTO(entity);
@@ -47,7 +49,8 @@ public class ContenidoService {
 
     /**
      * Crea un nuevo enlace
-     * @param dto DTO con los datos del enlace
+     * 
+     * @param dto     DTO con los datos del enlace
      * @param autorId ID del estudiante autor
      * @return DTO del contenido creado
      */
@@ -56,7 +59,7 @@ public class ContenidoService {
         EstudianteEntity autor = obtenerEstudiante(autorId);
         validarTipoContenido(dto, TipoContenido.ENLACE);
 
-        ContenidoEntity entity = contenidoMapper.fromEnlaceDTO(dto, autor);
+        ContentEntity entity = contenidoMapper.fromEnlaceDTO(dto, autor);
         entity = contenidoRepository.save(entity);
 
         // Aquí se guardarían detalles específicos del enlace en otra tabla o estructura
@@ -67,7 +70,8 @@ public class ContenidoService {
 
     /**
      * Crea un nuevo video
-     * @param dto DTO con los datos del video
+     * 
+     * @param dto     DTO con los datos del video
      * @param autorId ID del estudiante autor
      * @return DTO del contenido creado
      */
@@ -76,7 +80,7 @@ public class ContenidoService {
         EstudianteEntity autor = obtenerEstudiante(autorId);
         validarTipoContenido(dto, TipoContenido.VIDEO);
 
-        ContenidoEntity entity = contenidoMapper.fromVideoDTO(dto, autor);
+        ContentEntity entity = contenidoMapper.fromVideoDTO(dto, autor);
         entity = contenidoRepository.save(entity);
 
         // Aquí se guardarían detalles específicos del video en otra tabla o estructura
@@ -87,7 +91,8 @@ public class ContenidoService {
 
     /**
      * Crea una nueva imagen
-     * @param dto DTO con los datos de la imagen
+     * 
+     * @param dto     DTO con los datos de la imagen
      * @param autorId ID del estudiante autor
      * @return DTO del contenido creado
      */
@@ -96,10 +101,11 @@ public class ContenidoService {
         EstudianteEntity autor = obtenerEstudiante(autorId);
         validarTipoContenido(dto, TipoContenido.IMAGEN);
 
-        ContenidoEntity entity = contenidoMapper.fromImagenDTO(dto, autor);
+        ContentEntity entity = contenidoMapper.fromImagenDTO(dto, autor);
         entity = contenidoRepository.save(entity);
 
-        // Aquí se guardarían detalles específicos de la imagen en otra tabla o estructura
+        // Aquí se guardarían detalles específicos de la imagen en otra tabla o
+        // estructura
         // Por ejemplo, almacenar la ruta, dimensiones, formato, etc.
 
         return contenidoMapper.toDTO(entity);
@@ -107,7 +113,8 @@ public class ContenidoService {
 
     /**
      * Crea un nuevo código
-     * @param dto DTO con los datos del código
+     * 
+     * @param dto     DTO con los datos del código
      * @param autorId ID del estudiante autor
      * @return DTO del contenido creado
      */
@@ -116,7 +123,7 @@ public class ContenidoService {
         EstudianteEntity autor = obtenerEstudiante(autorId);
         validarTipoContenido(dto, TipoContenido.CODIGO);
 
-        ContenidoEntity entity = contenidoMapper.fromCodigoDTO(dto, autor);
+        ContentEntity entity = contenidoMapper.fromCodigoDTO(dto, autor);
         entity = contenidoRepository.save(entity);
 
         // Aquí se guardarían detalles específicos del código en otra tabla o estructura
@@ -127,12 +134,13 @@ public class ContenidoService {
 
     /**
      * Obtiene un contenido por su ID
+     * 
      * @param contenidoId ID del contenido
      * @return DTO del contenido
      */
     @Transactional(readOnly = true)
     public ContenidoDto obtenerContenidoPorId(UUID contenidoId) {
-        ContenidoEntity entity = contenidoRepository.findById(contenidoId)
+        ContentEntity entity = contenidoRepository.findById(contenidoId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Contenido", "id", contenidoId));
 
         return contenidoMapper.toDTO(entity);
@@ -140,6 +148,7 @@ public class ContenidoService {
 
     /**
      * Obtiene todos los contenidos
+     * 
      * @return Lista de DTOs de contenidos
      */
     @Transactional(readOnly = true)
@@ -151,6 +160,7 @@ public class ContenidoService {
 
     /**
      * Obtiene contenidos por tipo
+     * 
      * @param tipo Tipo de contenido
      * @return Lista de DTOs de contenidos
      */
@@ -163,6 +173,7 @@ public class ContenidoService {
 
     /**
      * Obtiene contenidos por autor
+     * 
      * @param autorId ID del autor
      * @return Lista de DTOs de contenidos
      */
@@ -175,6 +186,7 @@ public class ContenidoService {
 
     /**
      * Elimina un contenido
+     * 
      * @param contenidoId ID del contenido
      */
     @Transactional
@@ -187,12 +199,13 @@ public class ContenidoService {
 
     /**
      * Actualiza el promedio de valoraciones de un contenido
-     * @param contenidoId ID del contenido
+     * 
+     * @param contenidoId   ID del contenido
      * @param nuevoPromedio Nuevo promedio de valoraciones
      */
     @Transactional
     public void actualizarPromedioValoracion(UUID contenidoId, Double nuevoPromedio) {
-        ContenidoEntity entity = contenidoRepository.findById(contenidoId)
+        ContentEntity entity = contenidoRepository.findById(contenidoId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Contenido", "id", contenidoId));
 
         entity.setPromedioValoracion(nuevoPromedio);
@@ -201,6 +214,7 @@ public class ContenidoService {
 
     /**
      * Obtiene un estudiante por su ID
+     * 
      * @param estudianteId ID del estudiante
      * @return Entidad del estudiante
      */
@@ -211,7 +225,8 @@ public class ContenidoService {
 
     /**
      * Valida que el tipo de contenido del DTO coincida con el esperado
-     * @param dto DTO del contenido
+     * 
+     * @param dto          DTO del contenido
      * @param tipoEsperado Tipo de contenido esperado
      */
     private void validarTipoContenido(ContenidoDto dto, TipoContenido tipoEsperado) {

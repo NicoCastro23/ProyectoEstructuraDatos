@@ -2,7 +2,7 @@ package com.plataformaEducativa.proyectoestructuradatos.mapper;
 
 import com.plataformaEducativa.proyectoestructuradatos.dto.CrearValoracionDto;
 import com.plataformaEducativa.proyectoestructuradatos.dto.ValoracionDto;
-import com.plataformaEducativa.proyectoestructuradatos.entity.ContenidoEntity;
+import com.plataformaEducativa.proyectoestructuradatos.entity.ContentEntity;
 import com.plataformaEducativa.proyectoestructuradatos.entity.EstudianteEntity;
 import com.plataformaEducativa.proyectoestructuradatos.entity.ValoracionEntity;
 import org.springframework.stereotype.Component;
@@ -29,7 +29,8 @@ public class ValoracionMapper {
     /**
      * Convierte un DTO de creación de valoración a una entidad de valoración
      */
-    public ValoracionEntity fromCrearValoracionDTO(CrearValoracionDto dto, ContenidoEntity contenido, EstudianteEntity estudiante) {
+    public ValoracionEntity fromCrearValoracionDTO(CrearValoracionDto dto, ContentEntity contenido,
+            EstudianteEntity estudiante) {
         return ValoracionEntity.builder()
                 .puntuacion(dto.getPuntuacion())
                 .comentario(dto.getComentario())

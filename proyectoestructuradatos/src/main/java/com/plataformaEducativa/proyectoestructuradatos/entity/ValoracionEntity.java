@@ -29,7 +29,7 @@ public class ValoracionEntity {
     // Relación con el contenido valorado
     @ManyToOne
     @JoinColumn(name = "contenido_id", nullable = false)
-    private ContenidoEntity contenido;
+    private ContentEntity contenido;
 
     // Relación con el estudiante que hizo la valoración
     @ManyToOne

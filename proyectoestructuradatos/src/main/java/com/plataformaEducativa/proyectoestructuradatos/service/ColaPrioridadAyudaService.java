@@ -1,30 +1,83 @@
 package com.plataformaEducativa.proyectoestructuradatos.service;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.UUID;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.plataformaEducativa.proyectoestructuradatos.dto.ColaPrioridadAyudaDto;
+import com.plataformaEducativa.proyectoestructuradatos.dto.CrearSolicitudPrioridadDto;
 import com.plataformaEducativa.proyectoestructuradatos.entity.ColaPrioridadAyudaEntity;
+import com.plataformaEducativa.proyectoestructuradatos.entity.EstudianteEntity;
+import com.plataformaEducativa.proyectoestructuradatos.entity.SolicitudAyudaEntity;
 import com.plataformaEducativa.proyectoestructuradatos.enums.NivelUrgencia;
 import com.plataformaEducativa.proyectoestructuradatos.exception.EntityNotFoundException;
 import com.plataformaEducativa.proyectoestructuradatos.mapper.PriorityQueueMapper;
-import com.plataformaEducativa.proyectoestructuradatos.repository.ColaPrioridadAyudaRepository;
 import com.plataformaEducativa.proyectoestructuradatos.models.HelpPriorityQueue;
+import com.plataformaEducativa.proyectoestructuradatos.repository.ColaPrioridadAyudaRepository;
+import com.plataformaEducativa.proyectoestructuradatos.repository.EstudianteRepository;
+import com.plataformaEducativa.proyectoestructuradatos.repository.SolicitudAyudaRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ColaPrioridadAyudaService {
 
     private final ColaPrioridadAyudaRepository colaPrioridadAyudaRepository;
+    private final SolicitudAyudaRepository solicitudAyudaRepository;
+    private final EstudianteRepository estudianteRepository;
     private final PriorityQueueMapper priorityQueueMapper;
+
+    @Transactional
+    public ColaPrioridadAyudaDto crearSolicitudPrioridad(CrearSolicitudPrioridadDto solicitudDto) {
+        ColaPrioridadAyudaEntity nuevaSolicitud = new ColaPrioridadAyudaEntity();
+        nuevaSolicitud.setTema(solicitudDto.getTema());
+        nuevaSolicitud.setDescripcion(solicitudDto.getDescripcion());
+        nuevaSolicitud.setNivelUrgencia(solicitudDto.getNivelUrgencia());
+        nuevaSolicitud.setFechaSolicitud(LocalDateTime.now());
+        nuevaSolicitud.setResuelta(false);
+
+        // Si se proporciona un ID de solicitud de ayuda, buscarla y asociarla
+        if (solicitudDto.getSolicitudAyudaId() != null) {
+            SolicitudAyudaEntity solicitudAyuda = solicitudAyudaRepository.findById(solicitudDto.getSolicitudAyudaId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Solicitud de ayuda no encontrada con ID: " + solicitudDto.getSolicitudAyudaId()));
+            nuevaSolicitud.setSolicitudAyuda(solicitudAyuda);
+        }
+        // Si no hay solicitud de ayuda pero se proporcionan datos para crearla
+        else if (solicitudDto.getEstudianteId() != null && solicitudDto.getContenidoSolicitud() != null) {
+            EstudianteEntity estudiante = estudianteRepository.findById(solicitudDto.getEstudianteId())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Estudiante no encontrado con ID: " + solicitudDto.getEstudianteId()));
+
+            // Crear nueva solicitud de ayuda
+            SolicitudAyudaEntity nuevaSolicitudAyuda = new SolicitudAyudaEntity();
+            nuevaSolicitudAyuda.setEstudiante(estudiante);
+            nuevaSolicitudAyuda.setContenido(solicitudDto.getContenidoSolicitud());
+            nuevaSolicitudAyuda.setFechaCreacion(LocalDateTime.now());
+
+            // Guardar la nueva solicitud de ayuda
+            SolicitudAyudaEntity solicitudGuardada = solicitudAyudaRepository.save(nuevaSolicitudAyuda);
+            nuevaSolicitud.setSolicitudAyuda(solicitudGuardada);
+        }
+
+        // Guardar la solicitud en la cola de prioridad
+        ColaPrioridadAyudaEntity solicitudGuardada = colaPrioridadAyudaRepository.save(nuevaSolicitud);
+        log.info("Nueva solicitud creada en cola de prioridad con ID: {}", solicitudGuardada.getId());
+
+        // Convertir a modelo y luego a DTO para devolverlo
+        HelpPriorityQueue modelo = priorityQueueMapper.toModel(solicitudGuardada);
+        return convertToDto(modelo);
+    }
 
     public List<ColaPrioridadAyudaDto> obtenerColaPrioridad() {
         List<ColaPrioridadAyudaEntity> entidades = colaPrioridadAyudaRepository.findByResueltaFalse();
@@ -68,6 +121,7 @@ public class ColaPrioridadAyudaService {
         ColaPrioridadAyudaEntity entity = colaPrioridadAyudaRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("No encontrada con ID: " + id));
         entity.setNivelUrgencia(nuevoNivel);
+        log.info("Nivel de urgencia actualizado para solicitud ID: {}, nuevo nivel: {}", id, nuevoNivel);
         return convertToDto(priorityQueueMapper.toModel(colaPrioridadAyudaRepository.save(entity)));
     }
 
@@ -76,6 +130,7 @@ public class ColaPrioridadAyudaService {
         ColaPrioridadAyudaEntity entity = colaPrioridadAyudaRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("No encontrada con ID: " + id));
         entity.setResuelta(true);
+        log.info("Solicitud marcada como resuelta con ID: {}", id);
         return convertToDto(priorityQueueMapper.toModel(colaPrioridadAyudaRepository.save(entity)));
     }
 
@@ -101,18 +156,15 @@ public class ColaPrioridadAyudaService {
         if (model.getSolicitudAyuda() != null) {
             dto.setSolicitudAyudaId(model.getSolicitudAyuda().getId());
             dto.setContenidoSolicitud(model.getSolicitudAyuda().getContenido());
-            dto.setEstudianteId(model.getSolicitudAyuda().getEstudiante().getId());
-            dto.setNombreEstudiante(model.getSolicitudAyuda().getEstudiante().getName());
+            if (model.getSolicitudAyuda().getEstudiante() != null) {
+                dto.setEstudianteId(model.getSolicitudAyuda().getEstudiante().getId());
+                dto.setNombreEstudiante(model.getSolicitudAyuda().getEstudiante().getName());
+            }
         }
 
         return dto;
     }
 
-    /**
-     * Implementación de cola de prioridad usando PriorityQueue de Java
-     * Esta es una implementación alternativa que usa la estructura de datos de cola
-     * de prioridad
-     */
     public List<ColaPrioridadAyudaDto> obtenerColaPrioridadConPriorityQueue() {
         // Obtener entidades desde la BD
         List<ColaPrioridadAyudaEntity> solicitudesNoResueltas = colaPrioridadAyudaRepository.findByResueltaFalse();
@@ -137,21 +189,5 @@ public class ColaPrioridadAyudaService {
         }
 
         return resultado;
-    }
-
-    public ColaPrioridadAyudaDto crearSolicitud(HelpPriorityQueue dto) {
-        // Convertir el DTO a la entidad
-        ColaPrioridadAyudaEntity entity = new ColaPrioridadAyudaEntity();
-        entity.setTema(dto.getTema());
-        entity.setDescripcion(dto.getDescripcion());
-        entity.setNivelUrgencia(dto.getNivelUrgencia());
-        entity.setResuelta(false); // Asumimos que una nueva solicitud no está resuelta
-        entity.setFechaSolicitud(LocalDateTime.now());
-
-        // Guardar la entidad en la base de datos
-        ColaPrioridadAyudaEntity savedEntity = colaPrioridadAyudaRepository.save(entity);
-
-        // Convertir la entidad guardada de vuelta a DTO
-        return new ColaPrioridadAyudaDto(savedEntity);
     }
 }

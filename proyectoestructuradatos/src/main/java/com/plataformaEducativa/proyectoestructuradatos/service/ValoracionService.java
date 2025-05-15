@@ -2,7 +2,7 @@ package com.plataformaEducativa.proyectoestructuradatos.service;
 
 import com.plataformaEducativa.proyectoestructuradatos.dto.CrearValoracionDto;
 import com.plataformaEducativa.proyectoestructuradatos.dto.ValoracionDto;
-import com.plataformaEducativa.proyectoestructuradatos.entity.ContenidoEntity;
+import com.plataformaEducativa.proyectoestructuradatos.entity.ContentEntity;
 import com.plataformaEducativa.proyectoestructuradatos.entity.EstudianteEntity;
 import com.plataformaEducativa.proyectoestructuradatos.entity.ValoracionEntity;
 import com.plataformaEducativa.proyectoestructuradatos.exception.RecursoNoEncontradoException;
@@ -31,14 +31,15 @@ public class ValoracionService {
 
     /**
      * Crea una nueva valoración para un contenido
-     * @param dto DTO con los datos de la valoración
+     * 
+     * @param dto          DTO con los datos de la valoración
      * @param estudianteId ID del estudiante que valora
      * @return DTO de la valoración creada
      */
     @Transactional
     public ValoracionDto crearValoracion(CrearValoracionDto dto, UUID estudianteId) {
         // Validar que el contenido existe
-        ContenidoEntity contenido = contenidoRepository.findById(dto.getContenidoId())
+        ContentEntity contenido = contenidoRepository.findById(dto.getContenidoId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Contenido", "id", dto.getContenidoId()));
 
         // Validar que el estudiante existe
@@ -63,6 +64,7 @@ public class ValoracionService {
 
     /**
      * Obtiene todas las valoraciones de un contenido
+     * 
      * @param contenidoId ID del contenido
      * @return Lista de DTOs de valoraciones
      */
@@ -80,6 +82,7 @@ public class ValoracionService {
 
     /**
      * Obtiene todas las valoraciones hechas por un estudiante
+     * 
      * @param estudianteId ID del estudiante
      * @return Lista de DTOs de valoraciones
      */
@@ -97,6 +100,7 @@ public class ValoracionService {
 
     /**
      * Elimina una valoración
+     * 
      * @param valoracionId ID de la valoración
      * @param estudianteId ID del estudiante que hizo la valoración
      */
@@ -119,6 +123,7 @@ public class ValoracionService {
 
     /**
      * Actualiza el promedio de valoraciones de un contenido
+     * 
      * @param contenidoId ID del contenido
      */
     private void actualizarPromedioValoracion(UUID contenidoId) {
