@@ -1,9 +1,7 @@
 package com.plataformaEducativa.proyectoestructuradatos.enums;
 
-public enum RoleEnum {
+public enum UserRole {
 
-    ESTUDIANTE,
-    MODERADOR,
-    GUEST
-
+    STUDENT,
+    MODERATOR
 }
