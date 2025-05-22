@@ -113,6 +113,26 @@ public class StudyGroupService {
                 .orElseThrow(() -> new ResourceNotFoundException("Study group not found with id: " + groupId));
 
         // Check if group is active and has capacity
+        validateGroupStatus(group);
+
+        // Get current student
+        StudentEntity student = getCurrentAuthenticatedStudent();
+
+        // Check if student is already a member
+        validateStudentNotAlreadyMember(group, student);
+
+        // Add student to the group (bidirectional relationship)
+        addStudentToGroup(group, student);
+
+        // Save and return
+        StudyGroupEntity updatedGroup = studyGroupRepository.save(group);
+        return studyGroupMapper.entityToDto(updatedGroup);
+    }
+
+    /**
+     * Validates that the group is active and has capacity
+     */
+    private void validateGroupStatus(StudyGroupEntity group) {
         if (!group.isActive()) {
             throw new IllegalStateException("This study group is no longer active");
         }
@@ -120,22 +140,32 @@ public class StudyGroupService {
         if (group.getMaxCapacity() != null && group.getMembers().size() >= group.getMaxCapacity()) {
             throw new IllegalStateException("This study group has reached its maximum capacity");
         }
+    }
 
-        // Get current student
+    /**
+     * Gets the current authenticated student
+     */
+    private StudentEntity getCurrentAuthenticatedStudent() {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        StudentEntity student = studentRepository.findByUsername(currentUsername)
+        return studentRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new AccessDeniedException("Only students can join study groups"));
+    }
 
-        // Check if student is already a member
+    /**
+     * Validates that the student is not already a member
+     */
+    private void validateStudentNotAlreadyMember(StudyGroupEntity group, StudentEntity student) {
         if (group.getMembers().stream().anyMatch(m -> m.getId().equals(student.getId()))) {
             throw new IllegalStateException("You are already a member of this study group");
         }
+    }
 
-        // Add student to the group
+    /**
+     * Adds student to group maintaining bidirectional relationship
+     */
+    private void addStudentToGroup(StudyGroupEntity group, StudentEntity student) {
         group.getMembers().add(student);
-        StudyGroupEntity updatedGroup = studyGroupRepository.save(group);
-
-        return studyGroupMapper.entityToDto(updatedGroup);
+        student.getStudyGroups().add(group); // ← Esta línea es crucial
     }
 
     @Transactional
@@ -196,41 +226,147 @@ public class StudyGroupService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Crea automáticamente un grupo de estudio y agrega estudiantes con intereses
+     * coincidentes
+     * 
+     * @param topics      Conjunto de temas del grupo
+     * @param maxCapacity Capacidad máxima del grupo (opcional)
+     * @return DTO del grupo creado con miembros agregados
+     * @throws IllegalArgumentException si los temas están vacíos
+     * @throws IllegalStateException    si no se encuentran estudiantes con
+     *                                  intereses coincidentes
+     */
     @Transactional
     public StudyGroupDto createStudyGroupAutomatically(Set<String> topics, Integer maxCapacity) {
-        // Create a new study group with the given topics
-        StudyGroupEntity group = StudyGroupEntity.builder()
-                .name("Auto-generated Study Group: " + String.join(", ", topics))
-                .description(
-                        "Automatically created study group for students interested in: " + String.join(", ", topics))
-                .topics(topics)
+        validateTopics(topics);
+
+        StudyGroupEntity group = createBaseGroup(topics, maxCapacity);
+        Set<StudentEntity> matchingStudents = findStudentsWithMatchingInterests(topics);
+
+        validateMatchingStudents(matchingStudents);
+
+        Set<StudentEntity> selectedStudents = selectStudentsForGroup(matchingStudents, maxCapacity);
+        addStudentsToGroupBidirectionally(group, selectedStudents);
+
+        StudyGroupEntity savedGroup = studyGroupRepository.save(group);
+
+        return studyGroupMapper.entityToDto(savedGroup);
+    }
+
+    /**
+     * Valida que los temas no estén vacíos
+     * 
+     * @param topics Conjunto de temas a validar
+     * @throws IllegalArgumentException si está vacío o nulo
+     */
+    private void validateTopics(Set<String> topics) {
+        if (topics == null || topics.isEmpty()) {
+            throw new IllegalArgumentException("At least one topic must be provided");
+        }
+    }
+
+    /**
+     * Crea la entidad base del grupo de estudio
+     * 
+     * @param topics      Temas del grupo
+     * @param maxCapacity Capacidad máxima
+     * @return StudyGroupEntity base creado
+     */
+    private StudyGroupEntity createBaseGroup(Set<String> topics, Integer maxCapacity) {
+        String groupName = generateGroupName(topics);
+        String groupDescription = generateGroupDescription(topics);
+
+        return StudyGroupEntity.builder()
+                .name(groupName)
+                .description(groupDescription)
+                .topics(new HashSet<>(topics)) // Crear nueva instancia para evitar referencias
                 .active(true)
                 .maxCapacity(maxCapacity)
                 .members(new HashSet<>())
                 .build();
+    }
 
-        // Find students with matching interests
+    /**
+     * Genera el nombre del grupo basado en los temas
+     * 
+     * @param topics Temas del grupo
+     * @return Nombre del grupo generado
+     */
+    private String generateGroupName(Set<String> topics) {
+        return "Auto-generated Study Group: " + String.join(", ", topics);
+    }
+
+    /**
+     * Genera la descripción del grupo basada en los temas
+     * 
+     * @param topics Temas del grupo
+     * @return Descripción del grupo generada
+     */
+    private String generateGroupDescription(Set<String> topics) {
+        return "Automatically created study group for students interested in: " +
+                String.join(", ", topics);
+    }
+
+    /**
+     * Busca estudiantes con intereses que coincidan con los temas del grupo
+     * 
+     * @param topics Temas a buscar
+     * @return Conjunto de estudiantes con intereses coincidentes
+     */
+    private Set<StudentEntity> findStudentsWithMatchingInterests(Set<String> topics) {
         Set<StudentEntity> matchingStudents = new HashSet<>();
+
         for (String topic : topics) {
-            List<StudentEntity> students = studentRepository.findByAcademicInterest(topic);
-            matchingStudents.addAll(students);
+            List<StudentEntity> studentsWithInterest = studentRepository.findByAcademicInterest(topic);
+            matchingStudents.addAll(studentsWithInterest);
         }
 
-        // Add up to maxCapacity students to the group
-        if (maxCapacity != null) {
-            matchingStudents.stream()
-                    .limit(maxCapacity)
-                    .forEach(group.getMembers()::add);
-        } else {
-            group.getMembers().addAll(matchingStudents);
+        return matchingStudents;
+    }
+
+    /**
+     * Valida que se hayan encontrado estudiantes con intereses coincidentes
+     * 
+     * @param matchingStudents Estudiantes encontrados
+     * @throws IllegalStateException si no se encontraron estudiantes
+     */
+    private void validateMatchingStudents(Set<StudentEntity> matchingStudents) {
+        if (matchingStudents.isEmpty()) {
+            throw new IllegalStateException("No students found with matching interests for the specified topics");
+        }
+    }
+
+    /**
+     * Selecciona los estudiantes que se agregarán al grupo respetando la capacidad
+     * máxima
+     * 
+     * @param matchingStudents Estudiantes candidatos
+     * @param maxCapacity      Capacidad máxima del grupo
+     * @return Conjunto de estudiantes seleccionados
+     */
+    private Set<StudentEntity> selectStudentsForGroup(Set<StudentEntity> matchingStudents, Integer maxCapacity) {
+        if (maxCapacity == null) {
+            return new HashSet<>(matchingStudents);
         }
 
-        // Save only if there are members
-        if (!group.getMembers().isEmpty()) {
-            StudyGroupEntity savedGroup = studyGroupRepository.save(group);
-            return studyGroupMapper.entityToDto(savedGroup);
-        } else {
-            throw new IllegalStateException("No students found with matching interests");
+        return matchingStudents.stream()
+                .limit(maxCapacity)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Agrega estudiantes al grupo estableciendo la relación bidireccional
+     * correctamente
+     * 
+     * @param group    Grupo de estudio
+     * @param students Estudiantes a agregar
+     */
+    private void addStudentsToGroupBidirectionally(StudyGroupEntity group, Set<StudentEntity> students) {
+        for (StudentEntity student : students) {
+            // Establecer relación bidireccional
+            group.getMembers().add(student); // Lado del grupo
+            student.getStudyGroups().add(group); // Lado del estudiante
         }
     }
 }

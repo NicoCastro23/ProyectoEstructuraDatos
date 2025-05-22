@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/study-groups")
+@RequestMapping("/study-groups")
 @RequiredArgsConstructor
 public class StudyGroupController {
 
