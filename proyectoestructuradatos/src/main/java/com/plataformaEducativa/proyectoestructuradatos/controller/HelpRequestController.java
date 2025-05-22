@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/help-requests")
+@RequestMapping("/help-requests")
 @RequiredArgsConstructor
 public class HelpRequestController {
 
@@ -75,9 +75,21 @@ public class HelpRequestController {
         return ResponseEntity.ok(helpRequestService.searchActiveHelpRequestsByKeyword(keyword));
     }
 
-    @GetMapping("/for-student/{studentId}")
-    public ResponseEntity<List<HelpRequestDto>> getHelpRequestsForStudent(@PathVariable UUID studentId) {
+    /**
+     * Obtiene todas las solicitudes de ayuda creadas por un estudiante específico
+     */
+    @GetMapping("/created-by/{studentId}")
+    public ResponseEntity<List<HelpRequestDto>> getHelpRequestsCreatedByStudent(@PathVariable UUID studentId) {
         return ResponseEntity.ok(helpRequestService.getHelpRequestsForStudent(studentId));
+    }
+
+    /**
+     * Obtiene solicitudes de ayuda recomendadas basadas en los intereses del
+     * estudiante
+     */
+    @GetMapping("/recommended-for/{studentId}")
+    public ResponseEntity<List<HelpRequestDto>> getRecommendedHelpRequestsForStudent(@PathVariable UUID studentId) {
+        return ResponseEntity.ok(helpRequestService.getRecommendedHelpRequestsForStudent(studentId));
     }
 
     @GetMapping("/next-priority")

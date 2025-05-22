@@ -182,10 +182,52 @@ public class HelpRequestService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Obtiene todas las solicitudes de ayuda creadas por un estudiante específico
+     * 
+     * @param studentId UUID del estudiante
+     * @return Lista de DTOs de solicitudes de ayuda
+     * @throws IllegalArgumentException si el studentId es nulo
+     */
     public List<HelpRequestDto> getHelpRequestsForStudent(UUID studentId) {
-        return helpRequestRepository.findRequestsMatchingStudentInterests(studentId).stream()
+        validateStudentId(studentId);
+
+        List<HelpRequestEntity> requests = helpRequestRepository.findByRequesterId(studentId);
+
+        return requests.stream()
                 .map(helpRequestMapper::entityToDto)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene solicitudes de ayuda que coinciden con los intereses académicos del
+     * estudiante
+     * 
+     * @param studentId UUID del estudiante
+     * @return Lista de DTOs de solicitudes recomendadas
+     * @throws IllegalArgumentException si el studentId es nulo
+     */
+    public List<HelpRequestDto> getRecommendedHelpRequestsForStudent(UUID studentId) {
+        validateStudentId(studentId);
+
+        List<HelpRequestEntity> recommendedRequests = helpRequestRepository
+                .findRequestsMatchingStudentInterests(studentId);
+
+        return recommendedRequests.stream()
+                .map(helpRequestMapper::entityToDto)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Valida que el studentId no sea nulo
+     * 
+     * @param studentId UUID a validar
+     * @throws IllegalArgumentException si el studentId es nulo
+     */
+    private void validateStudentId(UUID studentId) {
+        if (studentId == null) {
+            throw new IllegalArgumentException("Student ID cannot be null");
+        }
     }
 
     public HelpRequestPriorityQueue buildHelpRequestPriorityQueue() {
