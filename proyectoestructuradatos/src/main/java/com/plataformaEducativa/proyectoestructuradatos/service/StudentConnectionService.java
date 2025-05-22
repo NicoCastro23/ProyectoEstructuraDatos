@@ -162,6 +162,7 @@ public class StudentConnectionService {
     @Transactional
     public void generateStudyPartnerConnections() {
         // Get all students with their study groups
+        connectionRepository.deleteAll();
         List<StudentEntity> allStudents = studentRepository.findAll();
 
         // For each student, create connections with other students in the same study

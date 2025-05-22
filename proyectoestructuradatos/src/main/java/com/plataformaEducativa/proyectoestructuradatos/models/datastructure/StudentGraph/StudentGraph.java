@@ -244,20 +244,92 @@ public class StudentGraph {
     }
 
     /**
-     * Encuentra los estudiantes con más conexiones (mayor grado).
+     * Obtiene los estudiantes más conectados eliminando duplicados
      * 
      * @param limit Número máximo de estudiantes a retornar
-     * @return Lista de estudiantes ordenados por número de conexiones (de mayor a
-     *         menor)
+     * @return Lista de estudiantes únicos con connectionCount correcto
      */
     public List<Student> getMostConnectedStudents(int limit) {
-        List<Student> students = new ArrayList<>(adjacencyMap.keySet());
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Limit must be greater than 0");
+        }
 
-        // Ordenar estudiantes por número de conexiones
-        students.sort((a, b) -> Integer.compare(adjacencyMap.get(b).size(), adjacencyMap.get(a).size()));
+        // Usar Map para eliminar duplicados por ID
+        Map<UUID, Student> uniqueStudents = new HashMap<>();
 
-        // Retornar los primeros 'limit' estudiantes
-        return students.subList(0, Math.min(limit, students.size()));
+        for (Map.Entry<Student, Map<Student, Integer>> entry : adjacencyMap.entrySet()) {
+            Student student = entry.getKey();
+            int connectionCount = entry.getValue().size();
+
+            // Solo mantener el estudiante con mayor connectionCount
+            UUID studentId = student.getId();
+            if (!uniqueStudents.containsKey(studentId) ||
+                    uniqueStudents.get(studentId).getConnectionCount() < connectionCount) {
+
+                Student studentWithConnections = createStudentWithConnectionCount(student, connectionCount);
+                uniqueStudents.put(studentId, studentWithConnections);
+            }
+        }
+
+        return uniqueStudents.values()
+                .stream()
+                .sorted((a, b) -> Integer.compare(b.getConnectionCount(), a.getConnectionCount()))
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Crea una nueva instancia de Student con el connectionCount establecido
+     * 
+     * @param originalStudent Estudiante original
+     * @param connectionCount Número de conexiones
+     * @return Student con connectionCount correcto
+     */
+    private Student createStudentWithConnectionCount(Student originalStudent, int connectionCount) {
+        return Student.builder()
+                .id(originalStudent.getId())
+                .username(originalStudent.getUsername())
+                .fullName(originalStudent.getFullName())
+                .email(originalStudent.getEmail())
+                .connectionCount(connectionCount)
+                .build();
+    }
+
+    /**
+     * Alternativa más simple usando Set para eliminar duplicados
+     */
+    public List<Student> getMostConnectedStudentsAlternative(int limit) {
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Limit must be greater than 0");
+        }
+
+        // Usar Set con comparación por ID para eliminar duplicados
+        Set<Student> uniqueStudents = new LinkedHashSet<>();
+
+        // Procesar adjacencyMap y mantener solo estudiantes únicos con connectionCount
+        // correcto
+        adjacencyMap.entrySet()
+                .stream()
+                .collect(Collectors.groupingBy(
+                        entry -> entry.getKey().getId(), // Agrupar por ID
+                        Collectors.maxBy(Comparator.comparing(entry -> entry.getValue().size())) // Mantener el de mayor
+                                                                                                 // connectionCount
+                ))
+                .values()
+                .stream()
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .forEach(entry -> {
+                    Student student = entry.getKey();
+                    int connectionCount = entry.getValue().size();
+                    Student studentWithConnections = createStudentWithConnectionCount(student, connectionCount);
+                    uniqueStudents.add(studentWithConnections);
+                });
+
+        return uniqueStudents.stream()
+                .sorted((a, b) -> Integer.compare(b.getConnectionCount(), a.getConnectionCount()))
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 
     /**

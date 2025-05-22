@@ -14,6 +14,7 @@ import com.plataformaEducativa.proyectoestructuradatos.mapper.ModeratorMapper;
 import com.plataformaEducativa.proyectoestructuradatos.repository.ModeratorRepository;
 import com.plataformaEducativa.proyectoestructuradatos.repository.StudentConnectionRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -117,15 +118,70 @@ public class ModeratorService {
                 .collect(Collectors.toList());
     }
 
-    // Analytics methods for moderators
-
+    /**
+     * Obtiene las conexiones más fuertes entre estudiantes
+     * 
+     * @param limit Número máximo de conexiones a retornar
+     * @return Lista de mapas con información de conexiones
+     * @throws IllegalArgumentException si el límite es inválido
+     */
     public List<Map<String, Object>> getTopStudentConnections(int limit) {
-        return connectionRepository.findTopConnections(limit).stream()
-                .map(result -> Map.of(
-                        "studentA", result[0],
-                        "studentB", result[1],
-                        "connectionStrength", result[2]))
+        validateLimit(limit);
+
+        List<Object[]> results = connectionRepository.findTopConnections(limit);
+
+        return results.stream()
+                .map(this::mapConnectionResult)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Valida que el límite sea válido
+     * 
+     * @param limit Límite a validar
+     * @throws IllegalArgumentException si el límite es inválido
+     */
+    private void validateLimit(int limit) {
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Limit must be greater than 0");
+        }
+        if (limit > 100) {
+            throw new IllegalArgumentException("Limit cannot exceed 100");
+        }
+    }
+
+    /**
+     * Mapea el resultado de la consulta a un mapa estructurado
+     * 
+     * @param result Array con datos de la conexión [studentA, studentB,
+     *               connectionStrength]
+     * @return Mapa con información estructurada de la conexión
+     */
+    private Map<String, Object> mapConnectionResult(Object[] result) {
+        validateResultArray(result);
+
+        return Map.of(
+                "studentA", result[0],
+                "studentB", result[1],
+                "connectionStrength", result[2],
+                "connectionType", "study-group", // Metadata adicional
+                "retrievedAt", LocalDateTime.now().toString());
+    }
+
+    /**
+     * Valida que el array de resultado tenga la estructura esperada
+     * 
+     * @param result Array a validar
+     * @throws IllegalStateException si la estructura es inválida
+     */
+    private void validateResultArray(Object[] result) {
+        if (result == null || result.length < 3) {
+            throw new IllegalStateException("Invalid connection result structure");
+        }
+
+        if (result[0] == null || result[1] == null || result[2] == null) {
+            throw new IllegalStateException("Connection result contains null values");
+        }
     }
 
     public Map<String, Object> getShortestPath(UUID startStudentId, UUID endStudentId) {

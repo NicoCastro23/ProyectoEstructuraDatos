@@ -1,6 +1,8 @@
 package com.plataformaEducativa.proyectoestructuradatos.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -78,10 +80,23 @@ public class ModeratorController {
 
     // Analytics endpoints
 
+    /**
+     * Obtiene las conexiones más fuertes entre estudiantes
+     * 
+     * @param limit Número máximo de conexiones a retornar (por defecto: 10, máximo:
+     *              100)
+     * @return Lista de conexiones ordenadas por fuerza descendente
+     */
     @GetMapping("/analytics/top-connections")
     public ResponseEntity<List<Map<String, Object>>> getTopStudentConnections(
-            @RequestParam(defaultValue = "10") int limit) {
-        return ResponseEntity.ok(moderatorService.getTopStudentConnections(limit));
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int limit) {
+
+        try {
+            List<Map<String, Object>> connections = moderatorService.getTopStudentConnections(limit);
+            return ResponseEntity.ok(connections);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @GetMapping("/analytics/path")
