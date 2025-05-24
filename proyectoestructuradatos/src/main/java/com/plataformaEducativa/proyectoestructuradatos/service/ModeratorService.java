@@ -1,6 +1,8 @@
 package com.plataformaEducativa.proyectoestructuradatos.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,11 +17,14 @@ import com.plataformaEducativa.proyectoestructuradatos.repository.ModeratorRepos
 import com.plataformaEducativa.proyectoestructuradatos.repository.StudentConnectionRepository;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ModeratorService {
@@ -185,12 +190,70 @@ public class ModeratorService {
     }
 
     public Map<String, Object> getShortestPath(UUID startStudentId, UUID endStudentId) {
-        return connectionRepository.findShortestPath(startStudentId, endStudentId)
-                .map(result -> Map.of(
-                        "path", result[0],
-                        "depth", result[1],
-                        "minStrength", result[2]))
-                .orElse(Map.of("error", "No path found between the students"));
+        log.info("Finding shortest path from {} to {}", startStudentId, endStudentId);
+
+        // Validación de entrada
+        if (startStudentId == null || endStudentId == null) {
+            log.warn("Null student IDs provided: start={}, end={}", startStudentId, endStudentId);
+            return Map.of("error", "Student IDs cannot be null");
+        }
+
+        if (startStudentId.equals(endStudentId)) {
+            log.warn("Same student ID provided for start and end: {}", startStudentId);
+            return Map.of("error", "Start and end student cannot be the same");
+        }
+
+        try {
+            Optional<Object[]> result = connectionRepository.findShortestPath(startStudentId, endStudentId);
+            log.debug("Query executed. Result present: {}", result.isPresent());
+
+            if (result.isPresent()) {
+                Object[] pathData = result.get();
+                log.debug("Path data length: {}", pathData.length);
+
+                // Log cada elemento para debugging
+                for (int i = 0; i < pathData.length; i++) {
+                    log.debug("pathData[{}] = {} (type: {})", i, pathData[i],
+                            pathData[i] != null ? pathData[i].getClass().getSimpleName() : "null");
+                }
+
+                return buildPathResponse(pathData);
+            } else {
+                log.info("No path found between {} and {}", startStudentId, endStudentId);
+                return Map.of("error", "No path found between the students");
+            }
+
+        } catch (Exception e) {
+            log.error("Error finding shortest path between {} and {}",
+                    startStudentId, endStudentId, e);
+            return Map.of("error", "Internal server error while finding path",
+                    "details", e.getMessage());
+        }
+    }
+
+    private Map<String, Object> buildPathResponse(Object[] result) {
+        try {
+            // El resultado es un Object[] que contiene [path_array, depth, min_strength]
+            Object[] actualData = (Object[]) result[0];
+
+            log.debug("Actual data length: {}", actualData.length);
+            for (int i = 0; i < actualData.length; i++) {
+                log.debug("actualData[{}] = {} (type: {})", i, actualData[i],
+                        actualData[i] != null ? actualData[i].getClass().getSimpleName() : "null");
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("path", actualData[0]); // Array de UUIDs
+            response.put("depth", actualData[1]); // Profundidad
+            response.put("minStrength", actualData[2]); // Fuerza mínima
+
+            log.debug("Built response: {}", response);
+            return response;
+
+        } catch (Exception e) {
+            log.error("Error building path response from result array", e);
+            throw e;
+        }
     }
 
     public List<Map<String, Object>> getStudentConnectionsStats() {
