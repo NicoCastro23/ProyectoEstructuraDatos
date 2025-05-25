@@ -10,6 +10,7 @@ import com.plataformaEducativa.proyectoestructuradatos.dto.StudentDto;
 import com.plataformaEducativa.proyectoestructuradatos.service.StudentConnectionService;
 import com.plataformaEducativa.proyectoestructuradatos.service.StudentService;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -115,11 +116,26 @@ public class StudentController {
 
         UUID studentIdA = UUID.fromString((String) connectionData.get("studentIdA"));
         UUID studentIdB = UUID.fromString((String) connectionData.get("studentIdB"));
-        @SuppressWarnings("unchecked")
-        Set<String> commonInterests = (Set<String>) connectionData.get("commonInterests");
 
-        if (commonInterests == null) {
-            commonInterests = Set.of();
+        // Convertir el ArrayList a Set de forma segura
+        Set<String> commonInterests;
+        Object commonInterestsObj = connectionData.get("commonInterests");
+
+        if (commonInterestsObj == null) {
+            commonInterests = new HashSet<>();
+        } else if (commonInterestsObj instanceof List) {
+            // Si es una List (lo más común con JSON), convertir a Set
+            @SuppressWarnings("unchecked")
+            List<String> interestsList = (List<String>) commonInterestsObj;
+            commonInterests = new HashSet<>(interestsList);
+        } else if (commonInterestsObj instanceof Set) {
+            // Si ya es un Set, usarlo directamente
+            @SuppressWarnings("unchecked")
+            Set<String> interestsSet = (Set<String>) commonInterestsObj;
+            commonInterests = interestsSet;
+        } else {
+            // Si es otro tipo, crear un Set vacío
+            commonInterests = new HashSet<>();
         }
 
         var connection = connectionService.createConnection(studentIdA, studentIdB, commonInterests);

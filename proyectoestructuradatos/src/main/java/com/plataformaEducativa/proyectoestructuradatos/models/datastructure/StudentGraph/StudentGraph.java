@@ -219,6 +219,33 @@ public class StudentGraph {
         Map<Student, Integer> recommendations = new HashMap<>();
         Set<Student> directConnections = adjacencyMap.get(student).keySet();
 
+        // Si no tiene conexiones directas, recomendar estudiantes con más conexiones
+        if (directConnections.isEmpty()) {
+            // Recomendar los estudiantes más conectados
+            for (Map.Entry<Student, Map<Student, Integer>> entry : adjacencyMap.entrySet()) {
+                Student otherStudent = entry.getKey();
+
+                if (!otherStudent.equals(student)) {
+                    int connectionCount = entry.getValue().size();
+                    if (connectionCount > 0) {
+                        // Usar el número de conexiones como puntuación
+                        recommendations.put(otherStudent, connectionCount * 10);
+                    }
+                }
+            }
+
+            // Limitar a los top 10
+            return recommendations.entrySet().stream()
+                    .sorted(Map.Entry.<Student, Integer>comparingByValue().reversed())
+                    .limit(10)
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            Map.Entry::getValue,
+                            (e1, e2) -> e1,
+                            LinkedHashMap::new));
+        }
+
+        // Lógica original para estudiantes con conexiones
         // Para cada conexión directa
         for (Student connection : directConnections) {
             // Considerar todas las conexiones de esta conexión directa

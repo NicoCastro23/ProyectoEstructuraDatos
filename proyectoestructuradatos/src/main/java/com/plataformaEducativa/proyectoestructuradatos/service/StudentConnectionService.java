@@ -1,6 +1,8 @@
 package com.plataformaEducativa.proyectoestructuradatos.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StudentConnectionService {
@@ -95,17 +98,43 @@ public class StudentConnectionService {
     }
 
     public List<Map<String, Object>> findShortestPath(UUID startStudentId, UUID endStudentId) {
+        log.info("Finding shortest path from {} to {}", startStudentId, endStudentId);
+
         // Use graph algorithm to find path
         StudentGraph graph = studentService.buildStudentGraph();
-        List<Student> path = graph.findShortestPath(
-                graph.getAdjacencyMap().keySet().stream()
-                        .filter(s -> s.getId().equals(startStudentId))
-                        .findFirst()
-                        .orElseThrow(() -> new ResourceNotFoundException("Start student not found in graph")),
-                graph.getAdjacencyMap().keySet().stream()
-                        .filter(s -> s.getId().equals(endStudentId))
-                        .findFirst()
-                        .orElseThrow(() -> new ResourceNotFoundException("End student not found in graph")));
+
+        // Debug: verificar que los estudiantes existen
+        Student startStudent = graph.getAdjacencyMap().keySet().stream()
+                .filter(s -> s.getId().equals(startStudentId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Start student not found in graph"));
+
+        Student endStudent = graph.getAdjacencyMap().keySet().stream()
+                .filter(s -> s.getId().equals(endStudentId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("End student not found in graph"));
+
+        log.info("Found start student: {} and end student: {}",
+                startStudent.getFullName(), endStudent.getFullName());
+
+        // Debug: imprimir conexiones de ambos estudiantes
+        Map<Student, Integer> startConnections = graph.getAdjacencyMap().get(startStudent);
+        Map<Student, Integer> endConnections = graph.getAdjacencyMap().get(endStudent);
+
+        log.info("Start student has {} connections", startConnections.size());
+        startConnections.forEach((s, w) -> log.debug("  -> {} (weight: {})", s.getFullName(), w));
+
+        log.info("End student has {} connections", endConnections.size());
+        endConnections.forEach((s, w) -> log.debug("  -> {} (weight: {})", s.getFullName(), w));
+
+        List<Student> path = graph.findShortestPath(startStudent, endStudent);
+
+        log.info("Path found with {} nodes", path.size());
+
+        if (path.isEmpty()) {
+            log.warn("No path found between {} and {}", startStudentId, endStudentId);
+            return new ArrayList<>();
+        }
 
         // Convert path to DTO format
         List<Map<String, Object>> result = new ArrayList<>();

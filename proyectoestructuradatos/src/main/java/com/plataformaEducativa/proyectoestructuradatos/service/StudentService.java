@@ -1,6 +1,8 @@
 package com.plataformaEducativa.proyectoestructuradatos.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,11 +19,15 @@ import com.plataformaEducativa.proyectoestructuradatos.models.datastructure.Stud
 import com.plataformaEducativa.proyectoestructuradatos.repository.StudentConnectionRepository;
 import com.plataformaEducativa.proyectoestructuradatos.repository.StudentRepository;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StudentService {
@@ -33,9 +39,51 @@ public class StudentService {
 
     public List<StudentDto> getAllStudents() {
         return studentRepository.findAll().stream()
-                .map(studentMapper::entityToDto)
+                .map(entity -> {
+                    StudentDto dto = studentMapper.entityToDto(entity);
+
+                    // Calcular connectionCount usando el repositorio
+                    int connectionCount = calculateConnectionCountForStudent(entity.getId());
+                    dto.setConnectionCount(connectionCount);
+
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Calcula el número de conexiones únicas para un estudiante
+     * 
+     * @param studentId ID del estudiante
+     * @return Número de estudiantes diferentes conectados
+     */
+    private int calculateConnectionCountForStudent(UUID studentId) {
+        try {
+            // Usar el método que ya tienes en el repositorio
+            List<StudentConnectionEntity> connections = connectionRepository.findConnectionsByStudentId(studentId);
+
+            // Contar estudiantes únicos conectados
+            Set<UUID> uniqueConnectedStudents = new HashSet<>();
+
+            for (StudentConnectionEntity connection : connections) {
+                // Agregar el otro estudiante (no el mismo)
+                if (connection.getStudentA().getId().equals(studentId)) {
+                    uniqueConnectedStudents.add(connection.getStudentB().getId());
+                } else {
+                    uniqueConnectedStudents.add(connection.getStudentA().getId());
+                }
+            }
+
+            return uniqueConnectedStudents.size();
+
+        } catch (Exception e) {
+            // Log del error y retornar 0 si algo falla
+
+            return 0;
+        }
+    }
+
+    // Resto de tus métodos existentes sin cambios...
 
     public StudentDto getStudentById(UUID id) {
         StudentEntity student = studentRepository.findById(id)
@@ -112,7 +160,13 @@ public class StudentService {
         List<StudentEntity> allStudents = studentRepository.findAll();
         List<StudentConnectionEntity> allConnections = connectionRepository.findAll();
 
+        log.info("Building graph with {} students and {} connections",
+                allStudents.size(), allConnections.size());
+
         StudentGraph graph = new StudentGraph();
+
+        // Mapa para mantener referencia a los objetos Student por ID
+        Map<UUID, Student> studentMap = new HashMap<>();
 
         // Add all students to the graph
         for (StudentEntity entity : allStudents) {
@@ -120,40 +174,90 @@ public class StudentService {
             // Add connection count
             long connectionCount = connectionRepository.findConnectionsByStudentId(entity.getId()).size();
             student.setConnectionCount((int) connectionCount);
+
             graph.addStudent(student);
+            studentMap.put(student.getId(), student); // Guardar referencia
         }
 
         // Add all connections to the graph
         for (StudentConnectionEntity connection : allConnections) {
-            Student studentA = studentMapper.entityToModel(connection.getStudentA());
-            Student studentB = studentMapper.entityToModel(connection.getStudentB());
-            graph.addConnection(studentA, studentB, connection.getConnectionStrength());
+            // Usar las referencias existentes en lugar de crear nuevas
+            Student studentA = studentMap.get(connection.getStudentA().getId());
+            Student studentB = studentMap.get(connection.getStudentB().getId());
+
+            if (studentA != null && studentB != null) {
+                log.debug("Adding connection between {} and {} with strength {}",
+                        studentA.getFullName(), studentB.getFullName(),
+                        connection.getConnectionStrength());
+
+                graph.addConnection(studentA, studentB, connection.getConnectionStrength());
+            } else {
+                log.warn("Could not find students for connection: {} - {}",
+                        connection.getStudentA().getId(),
+                        connection.getStudentB().getId());
+            }
         }
+
+        // Debug: imprimir estadísticas del grafo
+        log.info("Graph built successfully");
+        int totalConnections = 0;
+        for (Map.Entry<Student, Map<Student, Integer>> entry : graph.getAdjacencyMap().entrySet()) {
+            totalConnections += entry.getValue().size();
+        }
+        log.info("Total connections in graph: {}", totalConnections / 2); // Dividido por 2 porque es no dirigido
 
         return graph;
     }
 
     public List<StudentDto> findStudentsByInterest(String interest) {
         return studentRepository.findByAcademicInterest(interest).stream()
-                .map(studentMapper::entityToDto)
+                .map(entity -> {
+                    StudentDto dto = studentMapper.entityToDto(entity);
+
+                    // Usar el mismo método que creamos para getAllStudents()
+                    dto.setConnectionCount(calculateConnectionCountForStudent(entity.getId()));
+
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
     public List<StudentDto> findStudentsByFieldOfStudy(String field) {
         return studentRepository.findByFieldOfStudy(field).stream()
-                .map(studentMapper::entityToDto)
+                .map(entity -> {
+                    StudentDto dto = studentMapper.entityToDto(entity);
+
+                    // Calcular connectionCount usando el método existente
+                    dto.setConnectionCount(calculateConnectionCountForStudent(entity.getId()));
+
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
     public List<StudentDto> findStudentsByStudyGroup(UUID groupId) {
         return studentRepository.findByStudyGroupId(groupId).stream()
-                .map(studentMapper::entityToDto)
+                .map(entity -> {
+                    StudentDto dto = studentMapper.entityToDto(entity);
+
+                    // Calcular connectionCount usando el método existente
+                    dto.setConnectionCount(calculateConnectionCountForStudent(entity.getId()));
+
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
     public List<StudentDto> findStudentsWithCommonGroups(UUID studentId) {
         return studentRepository.findStudentsWithCommonGroups(studentId).stream()
-                .map(studentMapper::entityToDto)
+                .map(entity -> {
+                    StudentDto dto = studentMapper.entityToDto(entity);
+
+                    // Calcular connectionCount usando el método existente
+                    dto.setConnectionCount(calculateConnectionCountForStudent(entity.getId()));
+
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 

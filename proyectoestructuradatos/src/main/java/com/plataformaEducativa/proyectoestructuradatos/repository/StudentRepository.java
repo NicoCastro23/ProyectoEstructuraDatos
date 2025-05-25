@@ -27,12 +27,16 @@ public interface StudentRepository extends JpaRepository<StudentEntity, UUID> {
     @Query("SELECT DISTINCT s FROM StudentEntity s JOIN s.studyGroups g WHERE g.id = :groupId")
     List<StudentEntity> findByStudyGroupId(@Param("groupId") UUID groupId);
 
-    @Query(value = "SELECT s.* FROM students s " +
+    @Query(value = "SELECT s.user_id, s.profile_bio, s.education_level, s.study_field, " +
+            "u.active, u.created_at, u.email, u.full_name, u.password, u.role, u.updated_at, u.username " +
+            "FROM students s " +
+            "JOIN users u ON s.user_id = u.id " +
             "JOIN student_study_groups ssg ON s.user_id = ssg.student_id " +
             "JOIN study_groups g ON ssg.group_id = g.id " +
             "WHERE g.id IN (SELECT group_id FROM student_study_groups WHERE student_id = :studentId) " +
             "AND s.user_id != :studentId " +
-            "GROUP BY s.user_id " +
+            "GROUP BY s.user_id, s.profile_bio, s.education_level, s.study_field, " +
+            "u.active, u.created_at, u.email, u.full_name, u.password, u.role, u.updated_at, u.username " +
             "ORDER BY COUNT(DISTINCT g.id) DESC", nativeQuery = true)
     List<StudentEntity> findStudentsWithCommonGroups(@Param("studentId") UUID studentId);
 }
